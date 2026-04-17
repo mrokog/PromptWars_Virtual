@@ -1,0 +1,26 @@
+{
+  "name": "sportsvilla",
+  "version": "1.0.0",
+  "description": "SportsVilla — Real-time smart venue experience platform for Indian sporting events",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev":   "npx serve . --no-request-logging",
+    "test":  "npx jest --coverage",
+    "lint":  "npx eslint js/ tests/ --ext .js"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch":       ["**/tests/**/*.test.js"],
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": ["js/**/*.js", "workers/**/*.js"]
+  },
+  "devDependencies": {
+    "jest":             "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0",
+    "eslint":           "^8.0.0",
+    "serve":            "^14.0.0"
+  },
+  "keywords": ["stadium", "crowd-management", "google-maps", "firebase", "accessibility", "pwa", "india", "cricket", "football", "badminton"],
+  "license": "MIT"
+}

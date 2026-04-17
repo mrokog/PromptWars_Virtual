@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- SEO -->
+  <title>SportsVilla — Smart Venue Experience</title>
+  <meta name="description" content="SportsVilla helps sporting event attendees navigate crowds, find shortest queues, order food, and enjoy a seamless stadium experience across India.">
+  <meta name="theme-color" content="#080c18">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SportsVilla">
+
+  <!-- Security: Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://maps.googleapis.com https://www.gstatic.com;
+    style-src 'self' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https: blob:;
+    connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firebaseapp.com;
+    frame-src 'self' https://www.google.com https://maps.google.com;
+    worker-src 'self' blob:;
+  ">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SportsVilla — Smart Venue Experience">
+  <meta property="og:description" content="Real-time crowd intelligence, wait times, and navigation for Indian sporting venues including Cricket, Football, and more.">
+  <meta property="og:type" content="website">
+
+  <!-- Google Fonts (preconnect for performance) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Application styles -->
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/animations.css">
+</head>
+<body>
+
+  <!-- =====================================================================
+       SKIP NAVIGATION (Accessibility — WCAG 2.4.1)
+       ===================================================================== -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- =====================================================================
+       ARIA LIVE REGIONS (screen reader announcements)
+       ===================================================================== -->
+  <div id="aria-live"  role="status"  aria-live="polite"    aria-atomic="true" class="sr-only"></div>
+  <div id="aria-alert" role="alert"   aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+
+  <!-- =====================================================================
+       LOADING OVERLAY
+       ===================================================================== -->
+  <div id="loading-overlay" role="status" aria-label="Loading SportsVilla, please wait">
+    <div class="loader-content">
+      <div class="loader-logo-wrap">
+        <div class="loader-icon" aria-hidden="true">🏟️</div>
+        <p class="loader-name">SportsVilla</p>
+        <p class="loader-tagline">Smart Venue Experience</p>
+      </div>
+      <div class="loader-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Loading progress">
+        <div class="loader-progress"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       APP SHELL
+       ===================================================================== -->
+  <div id="app" class="app-shell">
+
+    <!-- ==================================================================
+         ALERT BANNER (emergency / venue-wide alerts)
+         ================================================================== -->
+    <div id="alert-banner" class="alert-banner hidden" role="alert" aria-live="assertive" aria-atomic="true" aria-hidden="true">
+      <span id="alert-banner-text"></span>
+      <button id="alert-banner-close" class="icon-btn" aria-label="Close alert" style="color:inherit;">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M12.7 3.3a1 1 0 0 0-1.4 0L8 6.59 4.7 3.3a1 1 0 0 0-1.4 1.4L6.59 8 3.3 11.3a1 1 0 1 0 1.4 1.4L8 9.41l3.3 3.29a1 1 0 0 0 1.4-1.4L9.41 8l3.29-3.3a1 1 0 0 0 0-1.4z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ==================================================================
+         HEADER
+         ================================================================== -->
+    <header id="app-header" class="app-header" role="banner">
+      <div class="header-left">
+        <!-- App Logo -->
+        <div class="app-logo" aria-label="SportsVilla">
+          <span aria-hidden="true" style="font-size:22px;">🏟️</span>
+          <span class="logo-text">SportsVilla</span>
+        </div>
+      </div>
+
+      <!-- Live Score Ticker -->
+      <div id="score-ticker" class="score-ticker" role="status" aria-label="Live match score" aria-live="polite" aria-atomic="true">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span id="team-a" class="team-a" aria-hidden="true">RCB</span>
+        <span id="score-display" class="score-value">0 — 0</span>
+        <span id="team-b" class="team-b" aria-hidden="true">CSK</span>
+        <span id="score-period" class="score-period">1st Innings 0.0</span>
+      </div>
+
+      <div class="header-right">
+        <!-- Notification bell -->
+        <button id="notification-btn" class="icon-btn" aria-label="Notifications, 3 unread" aria-expanded="false" aria-controls="notification-drawer">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-1.3 1.29A1 1 0 0 0 5.41 19H18.6a1 1 0 0 0 .69-1.71z"/>
+          </svg>
+          <span id="notification-badge" class="badge" aria-hidden="true">3</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================================================================
+         MAIN CONTENT
+         ================================================================== -->
+    <main id="main-content" role="main" tabindex="-1" aria-label="Main content">
+
+      <!-- ================================================================
+           VIEW: DASHBOARD
+           ================================================================ -->
+      <section id="view-dashboard" class="view active" aria-labelledby="greeting-title">
+
+        <!-- Greeting -->
+        <div class="greeting-wrap">
+          <label for="event-selector" class="sr-only">Select Sporting Event</label>
+          <select id="event-selector" class="event-selector" aria-label="Select Event">
+            <option value="cricket">🏏 IPL: RCB vs CSK (Wankhede Stadium, Mumbai)</option>
+            <option value="football">⚽ ISL: Mohun Bagan vs East Bengal (Salt Lake, Kolkata)</option>
+            <option value="badminton">🏸 India Open (Indira Gandhi Arena, Delhi)</option>
+            <option value="tennis">🎾 Bengaluru Open (KSLTA Stadium, Bengaluru)</option>
+          </select>
+          <h1 id="greeting-title" class="greeting-title">Welcome to the Arena!</h1>
+          <p id="greeting-event" class="greeting-event">Ticket: Stand A · Row 15 · Seat 7</p>
+        </div>
+
+        <!-- Metrics grid -->
+        <div class="metrics-grid" role="group" aria-label="Venue status overview">
+          <article class="metric-card glass-card" aria-labelledby="metric-gates-label">
+            <div class="metric-icon gates-icon" aria-hidden="true">🚪</div>
+            <div class="metric-info">
+              <span id="metric-gates-label" class="metric-label">Open Gates</span>
+              <span id="metric-gates" class="metric-value" aria-live="polite">4/6</span>
+            </div>
+          </article>
+
+          <article class="metric-card glass-card" aria-labelledby="metric-wait-label">
+            <div class="metric-icon wait-icon" aria-hidden="true">⏱️</div>
+            <div class="metric-info">
+              <span id="metric-wait-label" class="metric-label">Avg Wait</span>
+              <span id="metric-wait" class="metric-value" aria-live="polite">4 min</span>
+            </div>
+          </article>
+
+          <article class="metric-card glass-card" aria-labelledby="metric-crowd-label">
+            <div class="metric-icon crowd-icon" aria-hidden="true">👥</div>
+            <div class="metric-info">
+              <span id="metric-crowd-label" class="metric-label">Crowd</span>
+              <span id="metric-crowd" class="metric-value" aria-live="polite">68%</span>
+            </div>
+          </article>
+
+          <article class="metric-card glass-card" aria-labelledby="metric-people-label">
+            <div class="metric-icon people-icon" aria-hidden="true">🏟️</div>
+            <div class="metric-info">
+              <span id="metric-people-label" class="metric-label">In Venue</span>
+              <span id="metric-people" class="metric-value" aria-live="polite">41,240</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- Zone overview -->
+        <section aria-labelledby="zone-overview-heading">
+          <h2 id="zone-overview-heading">Zone Overview</h2>
+          <div id="zone-list" role="list" aria-label="Stadium zone crowd levels" aria-live="polite">
+            <!-- Dynamically populated by app.js -->
+            <!-- Skeleton placeholders -->
+            <div class="zone-item skeleton-block skeleton" aria-hidden="true" style="height:52px;border-radius:12px;"></div>
+            <div class="zone-item skeleton-block skeleton" aria-hidden="true" style="height:52px;border-radius:12px;margin-top:8px;"></div>
+            <div class="zone-item skeleton-block skeleton" aria-hidden="true" style="height:52px;border-radius:12px;margin-top:8px;"></div>
+          </div>
+        </section>
+
+        <!-- Quick actions -->
+        <section aria-labelledby="quick-actions-heading">
+          <h2 id="quick-actions-heading">Quick Actions</h2>
+          <div class="quick-actions">
+            <button id="action-find-seat" class="action-btn" aria-label="Navigate to my seat">
+              <span class="action-icon" aria-hidden="true">🎯</span>
+              Find My Seat
+            </button>
+            <button id="action-nearest-food" class="action-btn" aria-label="Find nearest food stand with shortest wait">
+              <span class="action-icon" aria-hidden="true">🍔</span>
+              Nearest Food
+            </button>
+            <button id="action-nearest-restroom" class="action-btn" aria-label="Find nearest restroom with shortest wait">
+              <span class="action-icon" aria-hidden="true">🚻</span>
+              Restroom
+            </button>
+            <button id="action-emergency" class="action-btn emergency" aria-label="Emergency assistance">
+              <span class="action-icon" aria-hidden="true">🆘</span>
+              Emergency
+            </button>
+          </div>
+        </section>
+
+        <!-- Match Info & History -->
+        <section aria-labelledby="match-info-heading" style="margin-top: var(--space-6);">
+          <h2 id="match-info-heading">Match Context</h2>
+          <article class="glass-card" style="margin-bottom: var(--space-4);">
+            <h3 style="font-size: var(--text-base); margin: 0 0 var(--space-2) 0;">Last Encounters</h3>
+            <div id="match-history-list" role="list" aria-label="Match History" style="display: flex; flex-direction: column; gap: var(--space-2);">
+              <!-- Populated by app.js -->
+            </div>
+          </article>
+        </section>
+
+      </section><!-- /view-dashboard -->
+
+      <!-- ================================================================
+           VIEW: MAP
+           ================================================================ -->
+      <section id="view-map" class="view" aria-labelledby="map-view-heading" hidden>
+        <h1 id="map-view-heading" class="view-title">Venue Map</h1>
+
+        <!-- Filter chips -->
+        <div class="filter-chips" role="group" aria-label="Filter map by category">
+          <button class="chip active" data-filter="all" aria-pressed="true">All</button>
+          <button class="chip" data-filter="concession" aria-pressed="false">🍔 Food</button>
+          <button class="chip" data-filter="restroom"   aria-pressed="false">🚻 Restrooms</button>
+          <button class="chip" data-filter="gate"       aria-pressed="false">🚪 Gates</button>
+          <button class="chip" data-filter="firstaid"   aria-pressed="false">➕ First Aid</button>
+        </div>
+
+        <!-- Interactive SVG map (built by maps.js) -->
+        <div id="venue-map-container" class="venue-map-container" aria-label="Interactive stadium venue map. Click a zone for crowd details.">
+          <!-- SVG injected by VenueMap.init() -->
+        </div>
+
+        <!-- Zone detail panel -->
+        <div id="zone-detail-panel" class="zone-detail-panel" role="dialog" aria-labelledby="zone-detail-title" aria-modal="false" hidden>
+          <!-- Populated by showZoneDetail() -->
+        </div>
+
+        <!-- Legend -->
+        <div class="map-legend" role="note" aria-label="Crowd density colour legend">
+          <span class="legend-label">Crowd</span>
+          <span class="legend-item legend-empty">Empty</span>
+          <span class="legend-item legend-light">Light</span>
+          <span class="legend-item legend-moderate">Moderate</span>
+          <span class="legend-item legend-heavy">Heavy</span>
+          <span class="legend-item legend-full">Full</span>
+        </div>
+
+      </section><!-- /view-map -->
+
+      <!-- ================================================================
+           VIEW: NAVIGATE
+           ================================================================ -->
+      <section id="view-navigate" class="view" aria-labelledby="navigate-view-heading" hidden>
+        <h1 id="navigate-view-heading" class="view-title">Navigate</h1>
+
+        <!-- Route form -->
+        <form class="route-form" role="search" aria-label="Route planner" onsubmit="return false;">
+          <div class="route-field">
+            <label for="route-from" class="field-label">From</label>
+            <input
+              id="route-from"
+              type="text"
+              class="route-input"
+              value="Stand A, Row 15"
+              readonly
+              aria-describedby="route-from-hint"
+              aria-label="Starting location: Stand A, Row 15"
+            >
+            <span id="route-from-hint" class="field-hint">Based on your ticket</span>
+          </div>
+
+          <div class="route-divider" aria-hidden="true">⇅</div>
+
+          <div class="route-field">
+            <label for="route-to" class="field-label">To</label>
+            <input
+              id="route-to"
+              type="search"
+              class="route-input"
+              placeholder="Search destination…"
+              autocomplete="off"
+              aria-autocomplete="list"
+              aria-controls="route-suggestions"
+              aria-expanded="false"
+              aria-label="Destination search"
+            >
+            <ul
+              id="route-suggestions"
+              class="suggestions-list"
+              role="listbox"
+              aria-label="Destination suggestions"
+              hidden
+            ></ul>
+          </div>
+        </form>
+
+        <!-- Route options (populated by buildRoute()) -->
+        <div id="route-options" class="route-options" hidden aria-label="Available routes">
+          <h2>Route Options</h2>
+          <div id="route-cards" class="route-cards"></div>
+        </div>
+
+        <!-- Google Maps embed / Open in Maps -->
+        <div id="google-map-embed" class="google-map-embed" aria-label="Google Maps navigation">
+          <div class="map-placeholder">
+            <p>🗺️ Turn-by-turn navigation powered by Google Maps</p>
+            <button id="open-google-maps-btn" class="btn-primary" style="width:auto;">
+              Open in Google Maps
+            </button>
+          </div>
+        </div>
+
+        <!-- Getting Here Transit Info -->
+        <section aria-labelledby="transit-info-heading" style="margin-top: var(--space-6);">
+          <h2 id="transit-info-heading">Public Transit & Logistics</h2>
+          <article class="glass-card" style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:var(--weight-semibold); color:var(--color-text-primary);">🚇 Nearest Metro:</span>
+              <span id="transit-metro" style="color:var(--color-text-secondary);">Churchgate Station (400m)</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:var(--weight-semibold); color:var(--color-text-primary);">🚕 Rideshare Drop-off:</span>
+              <span id="transit-rideshare" style="color:var(--color-text-secondary);">Gate B / Marine Drive</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:var(--weight-semibold); color:var(--color-text-primary);">🅿️ Parking Status:</span>
+              <span id="transit-parking" style="color:var(--color-warning);">Lot 2 is 90% Full</span>
+            </div>
+          </article>
+        </section>
+
+      </section><!-- /view-navigate -->
+
+      <!-- ================================================================
+           VIEW: FOOD & DRINKS
+           ================================================================ -->
+      <section id="view-food" class="view" aria-labelledby="food-view-heading" hidden>
+        <h1 id="food-view-heading" class="view-title">Food & Drinks</h1>
+
+        <!-- Concession stand tabs -->
+        <div id="stand-selector" role="tablist" aria-label="Concession stands" class="stand-selector">
+          <!-- Populated by initFoodView() -->
+        </div>
+
+        <!-- Category filter chips -->
+        <div class="filter-chips food-filters" role="group" aria-label="Filter by food category">
+          <button class="chip active" data-category="all"      aria-pressed="true">All</button>
+          <button class="chip"        data-category="hot-food"  aria-pressed="false">🌭 Hot Food</button>
+          <button class="chip"        data-category="snacks"    aria-pressed="false">🍿 Snacks</button>
+          <button class="chip"        data-category="drinks"    aria-pressed="false">🥤 Drinks</button>
+          <button class="chip"        data-category="desserts"  aria-pressed="false">🍦 Desserts</button>
+        </div>
+
+        <!-- Menu grid -->
+        <div id="menu-grid" role="list" aria-label="Menu items" class="menu-grid">
+          <!-- Populated by renderMenu() -->
+        </div>
+
+      </section><!-- /view-food -->
+
+      <!-- ================================================================
+           VIEW: PROFILE
+           ================================================================ -->
+      <section id="view-profile" class="view" aria-labelledby="profile-view-heading" hidden>
+        <h1 id="profile-view-heading" class="view-title">Profile</h1>
+
+        <!-- Auth card -->
+        <div id="auth-card" class="auth-card glass-card">
+          <!-- Signed-out state -->
+          <div id="auth-signed-out" class="auth-state">
+            <div style="font-size:48px;" aria-hidden="true">👤</div>
+            <p class="auth-prompt">Sign in with Google to sync your ticket, preferences, and order history.</p>
+            <button id="google-signin-btn" class="btn-google" type="button">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" width="18" height="18" aria-hidden="true">
+              Sign in with Google
+            </button>
+          </div>
+          <!-- Signed-in state -->
+          <div id="auth-signed-in" class="auth-state hidden">
+            <img id="user-avatar" class="user-avatar" src="" alt="" width="72" height="72">
+            <div class="user-info" style="text-align:center;">
+              <p id="user-display-name" class="user-name-display"></p>
+              <p id="user-email" class="user-email-display"></p>
+            </div>
+            <button id="signout-btn" class="btn-secondary" type="button">Sign Out</button>
+          </div>
+        </div>
+
+        <!-- My Ticket -->
+        <section class="glass-card" aria-labelledby="ticket-heading" style="margin-top:var(--space-4);">
+          <h2 id="ticket-heading" style="font-size:var(--text-base);font-weight:var(--weight-bold);color:var(--color-text-primary);text-transform:none;letter-spacing:0;margin-bottom:var(--space-1);margin-top:0;">🎟️ My Ticket</h2>
+          <div class="ticket-info" aria-label="Ticket details">
+            <div class="ticket-field">
+              <span class="ticket-label">Stand</span>
+              <span id="ticket-section" class="ticket-value">A</span>
+            </div>
+            <div class="ticket-field">
+              <span class="ticket-label">Row</span>
+              <span id="ticket-row" class="ticket-value">15</span>
+            </div>
+            <div class="ticket-field">
+              <span class="ticket-label">Seat</span>
+              <span id="ticket-seat" class="ticket-value">7</span>
+            </div>
+            <div class="ticket-field">
+              <span class="ticket-label">Gate</span>
+              <span id="ticket-gate" class="ticket-value">3</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Accessibility settings -->
+        <section class="glass-card settings-card" aria-labelledby="a11y-settings-heading">
+          <h2 id="a11y-settings-heading" style="font-size:var(--text-base);font-weight:var(--weight-bold);color:var(--color-text-primary);text-transform:none;letter-spacing:0;margin-bottom:0;margin-top:0;">♿ Display & Accessibility</h2>
+          <div class="settings-list" role="list">
+            <div class="setting-item" role="listitem">
+              <label class="setting-label" for="toggle-light-theme">Light Mode</label>
+              <button role="switch" id="toggle-light-theme" class="toggle-switch" aria-checked="false" type="button">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
+            <div class="setting-item" role="listitem">
+              <label class="setting-label" for="toggle-high-contrast">High Contrast Mode</label>
+              <button role="switch" id="toggle-high-contrast" class="toggle-switch" aria-checked="false" type="button">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
+            <div class="setting-item" role="listitem">
+              <label class="setting-label" for="toggle-reduce-motion">Reduce Motion</label>
+              <button role="switch" id="toggle-reduce-motion" class="toggle-switch" aria-checked="false" type="button">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
+            <div class="setting-item" role="listitem">
+              <label class="setting-label" for="toggle-mobility">Mobility-Friendly Routes</label>
+              <button role="switch" id="toggle-mobility" class="toggle-switch" aria-checked="false" type="button">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
+            <div class="setting-item" role="listitem">
+              <label class="setting-label" for="toggle-large-text">Large Text</label>
+              <button role="switch" id="toggle-large-text" class="toggle-switch" aria-checked="false" type="button">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Notification preferences -->
+        <section class="glass-card settings-card" aria-labelledby="notif-settings-heading">
+          <h2 id="notif-settings-heading" style="font-size:var(--text-base);font-weight:var(--weight-bold);color:var(--color-text-primary);text-transform:none;letter-spacing:0;margin-bottom:0;margin-top:0;">🔔 Notifications</h2>
+          <div class="settings-list" role="list">
+            <div class="setting-item" role="listitem">
+              <label class="setting-label" for="toggle-score-alerts">Score Alerts</label>
+              <button role="switch" id="toggle-score-alerts" class="toggle-switch" aria-checked="true" type="button">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
+            <div class="setting-item" role="listitem">
+              <label class="setting-label" for="toggle-crowd-alerts">Crowd Alerts</label>
+              <button role="switch" id="toggle-crowd-alerts" class="toggle-switch" aria-checked="true" type="button">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
+            <div class="setting-item" role="listitem">
+              <label class="setting-label" for="toggle-order-alerts">Order Ready Alerts</label>
+              <button role="switch" id="toggle-order-alerts" class="toggle-switch" aria-checked="true" type="button">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Google Services attribution -->
+        <div style="padding:var(--space-6) 0;text-align:center;">
+          <p style="font-size:var(--text-xs);color:var(--color-text-muted);">
+            Powered by Google Maps · Firebase Auth · Firebase Realtime DB · FCM
+          </p>
+        </div>
+
+      </section><!-- /view-profile -->
+
+    </main><!-- /main-content -->
+
+    <!-- ==================================================================
+         NOTIFICATION DRAWER
+         ================================================================== -->
+    <aside id="notification-drawer" class="drawer" role="dialog" aria-labelledby="notif-drawer-title" aria-modal="true" aria-hidden="true" hidden>
+      <div class="drawer-handle" aria-hidden="true"></div>
+      <div class="drawer-header">
+        <h2 id="notif-drawer-title">Notifications</h2>
+        <button id="notif-drawer-close" class="icon-btn" aria-label="Close notifications">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M12.7 3.3a1 1 0 0 0-1.4 0L8 6.59 4.7 3.3a1 1 0 0 0-1.4 1.4L6.59 8 3.3 11.3a1 1 0 1 0 1.4 1.4L8 9.41l3.3 3.29a1 1 0 0 0 1.4-1.4L9.41 8l3.29-3.3a1 1 0 0 0 0-1.4z"/>
+          </svg>
+        </button>
+      </div>
+      <div id="notification-list" class="drawer-body notification-list" role="list" aria-label="All notifications"></div>
+      <div class="drawer-footer">
+        <button id="mark-all-read-btn" class="btn-secondary" type="button" style="width:100%;">Mark all as read</button>
+      </div>
+    </aside>
+
+    <!-- ==================================================================
+         CART DRAWER
+         ================================================================== -->
+    <aside id="cart-drawer" class="drawer" role="dialog" aria-labelledby="cart-drawer-title" aria-modal="true" aria-hidden="true" hidden>
+      <div class="drawer-handle" aria-hidden="true"></div>
+      <div class="drawer-header">
+        <h2 id="cart-drawer-title">Your Order</h2>
+        <button id="cart-drawer-close" class="icon-btn" aria-label="Close cart">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M12.7 3.3a1 1 0 0 0-1.4 0L8 6.59 4.7 3.3a1 1 0 0 0-1.4 1.4L6.59 8 3.3 11.3a1 1 0 1 0 1.4 1.4L8 9.41l3.3 3.29a1 1 0 0 0 1.4-1.4L9.41 8l3.29-3.3a1 1 0 0 0 0-1.4z"/>
+          </svg>
+        </button>
+      </div>
+      <div id="cart-items" class="drawer-body cart-items" role="list" aria-label="Cart items" aria-live="polite"></div>
+      <div class="drawer-footer">
+        <div class="cart-total-row" aria-live="polite">
+          <span>Total</span>
+          <strong id="cart-total-amount">$0.00</strong>
+        </div>
+        <button id="place-order-btn" class="btn-primary" type="button" disabled aria-disabled="true">
+          Place Order
+        </button>
+      </div>
+    </aside>
+
+    <!-- Backdrop (shared) -->
+    <div id="drawer-backdrop" class="drawer-backdrop" aria-hidden="true" hidden></div>
+
+    <!-- ==================================================================
+         CART FAB (floating action button — food view)
+         ================================================================== -->
+    <button id="cart-btn" class="cart-fab" type="button" aria-label="View cart, 0 items" aria-controls="cart-drawer" hidden>
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM4.27 4H2V2H0v2h2l3.6 7.59L4.25 14C4.09 14.37 4 14.76 4 15c0 1.1.9 2 2 2h14v-2H6.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H19c.75 0 1.41-.41 1.75-1.03L22 7H6.21l-.94-3z"/>
+      </svg>
+      <span id="cart-count-badge" class="cart-badge" aria-hidden="true">0</span>
+      <span id="cart-total" aria-hidden="true">$0.00</span>
+    </button>
+
+    <!-- ==================================================================
+         TOAST CONTAINER
+         ================================================================== -->
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-label="Notifications"></div>
+
+    <!-- ==================================================================
+         BOTTOM NAVIGATION
+         ================================================================== -->
+    <nav id="bottom-nav" class="bottom-nav" role="navigation" aria-label="Main navigation">
+
+      <button class="nav-item active" data-view="dashboard" aria-current="page" aria-label="Dashboard — Home" type="button">
+        <div class="nav-icon-wrap active" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+        </div>
+        <span class="nav-label">Home</span>
+      </button>
+
+      <button class="nav-item" data-view="map" aria-current="false" aria-label="Venue Map" type="button">
+        <div class="nav-icon-wrap" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/>
+          </svg>
+        </div>
+        <span class="nav-label">Map</span>
+      </button>
+
+      <button class="nav-item" data-view="navigate" aria-current="false" aria-label="Navigate" type="button">
+        <div class="nav-icon-wrap" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/>
+          </svg>
+        </div>
+        <span class="nav-label">Navigate</span>
+      </button>
+
+      <button class="nav-item" data-view="food" aria-current="false" aria-label="Food and Drinks" type="button">
+        <div class="nav-icon-wrap" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
+          </svg>
+        </div>
+        <span class="nav-label">Food</span>
+      </button>
+
+      <button class="nav-item" data-view="profile" aria-current="false" aria-label="Profile and Settings" type="button">
+        <div class="nav-icon-wrap" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        </div>
+        <span class="nav-label">Profile</span>
+      </button>
+
+    </nav><!-- /bottom-nav -->
+
+  </div><!-- /app-shell -->
+
+  <!-- Application entry point — ES Module -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
