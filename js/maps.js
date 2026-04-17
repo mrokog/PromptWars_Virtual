@@ -11,6 +11,36 @@
 
 import { sanitize, throttle } from './utils.js';
 import { DENSITY_COLORS }     from './crowd.js';
+import { GOOGLE_CONFIG } from './config.js';
+
+// ---------------------------------------------------------------------------
+// Google Maps JS API Loader
+// ---------------------------------------------------------------------------
+
+let googleMapsApiLoaded = false;
+
+/**
+ * Loads the Google Maps JS API dynamically.
+ * @returns {Promise<void>}
+ */
+export async function loadGoogleMaps() {
+  if (googleMapsApiLoaded) return;
+  
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_CONFIG.maps.apiKey}&callback=initMap`;
+    script.async = true;
+    script.defer = true;
+    
+    window.initMap = () => {
+      googleMapsApiLoaded = true;
+      resolve();
+    };
+    
+    script.onerror = () => reject(new Error('Failed to load Google Maps API'));
+    document.head.appendChild(script);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // SVG venue geometry
@@ -323,7 +353,7 @@ export class VenueMap {
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', '0 0 700 520');
     svg.setAttribute('role',    'img');
-    svg.setAttribute('aria-label', 'Interactive stadium venue map showing crowd density by zone');
+    svg.setAttribute('aria-label', `Interactive ${CURRENT_SPORT} venue map showing crowd density by zone`);
     svg.setAttribute('class', 'venue-svg');
     svg.setAttribute('focusable', 'false');
 
@@ -474,7 +504,7 @@ export class VenueMap {
     el.setAttribute('data-zone-id', geo.id);
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', '0');
-    el.setAttribute('aria-label', geo.label.replace(/\n/g, ' '));
+    el.setAttribute('aria-label', `${geo.label.replace(/\n/g, ' ')}: Crowd level ${el.dataset.level || 'Unknown'}`);
     el.style.setProperty('--zone-fill', '#1e3a5f'); // default color until data arrives
 
     return el;

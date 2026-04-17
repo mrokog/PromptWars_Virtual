@@ -6,14 +6,17 @@
   "type": "module",
   "scripts": {
     "dev":   "npx serve . --no-request-logging",
-    "test":  "npx jest --coverage",
+    "test":  "set NODE_OPTIONS=--experimental-vm-modules && npx jest --coverage",
     "lint":  "npx eslint js/ tests/ --ext .js"
   },
   "jest": {
     "testEnvironment": "jsdom",
     "testMatch":       ["**/tests/**/*.test.js"],
     "coverageDirectory": "coverage",
-    "collectCoverageFrom": ["js/**/*.js", "workers/**/*.js"]
+    "collectCoverageFrom": ["js/**/*.js", "workers/**/*.js"],
+    "moduleNameMapper": {
+      "^https://www.gstatic.com/firebasejs/(.*)$": "<rootDir>/tests/mocks/firebase-mock.js"
+    }
   },
   "devDependencies": {
     "jest":             "^29.0.0",

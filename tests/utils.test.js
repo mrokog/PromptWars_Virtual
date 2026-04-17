@@ -1,72 +1,9 @@
-/**
- * @fileoverview Unit tests for js/utils.js — StadiumIQ
- * Compatible with Jest.
- * @module tests/utils.test
- */
-
-'use strict';
-
-// ---- Inline implementations (same as utils.js, for Node testability) ----
-
-function sanitize(str) {
-  if (typeof str !== 'string') return '';
-  const m = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;' };
-  return str.replace(/[&<>"'`=/]/g, (c) => m[c]);
-}
-
-function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
-
-function debounce(fn, ms = 300) {
-  let timer;
-  function d(...args) { clearTimeout(timer); timer = setTimeout(() => fn.apply(this, args), ms); }
-  d.cancel = () => clearTimeout(timer);
-  return d;
-}
-
-function throttle(fn, ms = 100) {
-  let last = 0;
-  return function (...a) { const now = Date.now(); if (now - last >= ms) { last = now; return fn.apply(this, a); } };
-}
-
-function formatDuration(ms) {
-  if (ms < 60000) return `${Math.round(ms / 1000)}s`;
-  const m = Math.round(ms / 60000);
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60); const rm = m % 60;
-  return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
-}
-
-function formatWait(minutes) {
-  if (minutes < 1) return '< 1 min';
-  if (minutes < 60) return `${Math.round(minutes)} min`;
-  return formatDuration(minutes * 60000);
-}
-
-function formatNumber(n) { return new Intl.NumberFormat('en-US').format(Math.round(n)); }
-
-function formatCurrency(amount) { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount); }
-
-function lerp(a, b, t) { return a + (b - a) * clamp(t, 0, 1); }
-
-function isValidZoneId(id) { return typeof id === 'string' && /^[a-zA-Z0-9_-]{1,32}$/.test(id); }
-
-function isValidOccupancy(value, capacity) {
-  return typeof value === 'number' && typeof capacity === 'number' && Number.isFinite(value) && Number.isFinite(capacity) && value >= 0 && capacity > 0 && value <= capacity * 1.05;
-}
-
-function percentage(part, whole) { if (!whole) return 0; return Math.round((part / whole) * 1000) / 10; }
-
-function generateId() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
-
-function gaussianJitter(mean, stdDev, cap) {
-  const u1 = Math.random(), u2 = Math.random();
-  const z = Math.sqrt(-2 * Math.log(u1 + 1e-9)) * Math.cos(2 * Math.PI * u2);
-  return clamp(Math.round(mean + z * stdDev), 0, cap);
-}
+import { jest } from '@jest/globals';
+import { 
+  sanitize, clamp, debounce, throttle, formatDuration, formatWait, 
+  formatNumber, formatCurrency, lerp, isValidZoneId, isValidOccupancy, 
+  percentage, generateId, gaussianJitter 
+} from '../js/utils.js';
 
 // ---- Tests ----
 

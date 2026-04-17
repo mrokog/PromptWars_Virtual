@@ -9,6 +9,14 @@
 'use strict';
 
 import { sanitize, generateId } from './utils.js';
+import { GOOGLE_CONFIG } from './config.js';
+import { 
+  getAuth, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  onAuthStateChanged, 
+  signOut 
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 /**
  * @typedef {Object} StadiumUser
@@ -41,8 +49,18 @@ export class AuthManager {
     /** @private */
     this._sessionKey = 'siq_session';
 
+    /** @private */
+    this._auth = getAuth();
+
     // Restore persisted session
     this._restoreSession();
+
+    // Listen to real Firebase auth changes
+    onAuthStateChanged(this._auth, (user) => {
+      if (user) {
+        this._setUserFromFirebase(user);
+      }
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -56,25 +74,44 @@ export class AuthManager {
    * @returns {Promise<StadiumUser>}
    */
   async signInWithGoogle() {
-    // Simulate network delay
-    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(this._auth, provider);
+      return this._setUserFromFirebase(result.user);
+    } catch (error) {
+      console.warn('[AuthManager] Firebase sign-in failed, falling back to demo mode:', error.message);
+      
+      // Demo fallback logic
+      const user = {
+        uid:         generateId(),
+        displayName: 'Alex Johnson',
+        email:       'alex.johnson@example.com',
+        photoURL:    'https://ui-avatars.com/api/?name=Alex+Johnson&background=3b82f6&color=fff&size=128',
+        role:        'attendee',
+        ticket: {
+          section: '112', row: '15', seat: '7', gate: 'C',
+          event:   'Lakers vs Celtics — April 17, 2026',
+        },
+      };
 
-    /** @type {StadiumUser} */
+      this._setUser(user);
+      return user;
+    }
+  }
+
+  /**
+   * Internal helper to map Firebase User to StadiumUser
+   * @private
+   */
+  _setUserFromFirebase(fbUser) {
     const user = {
-      uid:         generateId(),
-      displayName: 'Alex Johnson',
-      email:       'alex.johnson@example.com',
-      photoURL:    `https://ui-avatars.com/api/?name=Alex+Johnson&background=3b82f6&color=fff&size=128`,
+      uid:         fbUser.uid,
+      displayName: fbUser.displayName || 'Stadium Fan',
+      email:       fbUser.email || '',
+      photoURL:    fbUser.photoURL || '',
       role:        'attendee',
-      ticket: {
-        section: '112',
-        row:     '15',
-        seat:    '7',
-        gate:    'C',
-        event:   'Lakers vs Celtics — April 17, 2026',
-      },
+      ticket:      this._currentUser?.ticket || { section: '112', row: '15', seat: '7', gate: 'C', event: 'Match' }
     };
-
     this._setUser(user);
     return user;
   }
@@ -85,7 +122,11 @@ export class AuthManager {
    * @returns {Promise<void>}
    */
   async signOut() {
-    await new Promise((r) => setTimeout(r, 400));
+    try {
+      await signOut(this._auth);
+    } catch (e) {
+      console.error('[AuthManager] Firebase signout error:', e);
+    }
     this._setUser(null);
   }
 

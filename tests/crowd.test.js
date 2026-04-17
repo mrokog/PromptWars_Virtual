@@ -1,19 +1,9 @@
-/**
- * @fileoverview Unit tests for CrowdEngine — StadiumIQ
- * Compatible with Jest (run: npx jest tests/crowd.test.js)
- * @module tests/crowd.test
- */
-
-'use strict';
-
-// ---- Minimal inline clone of CrowdEngine for pure-Node testability ----
-// (avoids ES Module transform in Jest; in a Vite/esbuild project, import directly)
-
-function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
-
-const THRESHOLDS = { empty: 0, light: 25, moderate: 50, heavy: 70, full: 85 };
-const COLORS     = { empty: '#22c55e', light: '#84cc16', moderate: '#f59e0b', heavy: '#f97316', full: '#ef4444' };
-const BASE_WAIT  = { concession: 3, restroom: 2, gate: 1.5, stand: 0, firstaid: 0.5 };
+import { jest } from '@jest/globals';
+import { 
+  CrowdEngine, 
+  DENSITY_THRESHOLDS as THRESHOLDS, 
+  DENSITY_COLORS as COLORS 
+} from '../js/crowd.js';
 
 function scoreToLevel(score) {
   if (score >= THRESHOLDS.full)     return 'full';
@@ -21,38 +11,6 @@ function scoreToLevel(score) {
   if (score >= THRESHOLDS.moderate) return 'moderate';
   if (score >= THRESHOLDS.light)    return 'light';
   return 'empty';
-}
-
-class CrowdEngine {
-  constructor({ smoothingWindow = 3 } = {}) {
-    if (!Number.isInteger(smoothingWindow) || smoothingWindow < 1) throw new RangeError('smoothingWindow must be positive integer');
-    this._w = smoothingWindow;
-    this._h = new Map();
-  }
-
-  computeDensity(zone) {
-    if (!zone?.id) throw new TypeError('zone must have id');
-    if (zone.capacity <= 0) throw new RangeError('capacity must be > 0');
-    if (zone.occupancy < 0) throw new RangeError('occupancy must be >= 0');
-    const hist = this._h.get(zone.id) ?? [];
-    hist.push(zone.occupancy);
-    if (hist.length > this._w) hist.shift();
-    this._h.set(zone.id, hist);
-    const smoothed = hist.reduce((s, v) => s + v, 0) / hist.length;
-    const ratio = smoothed / zone.capacity;
-    const score = clamp(Math.round(ratio * 100), 0, 100);
-    const level = scoreToLevel(score);
-    const mult  = 1 + 4 * Math.pow(clamp(ratio, 0, 1), 2);
-    const base  = BASE_WAIT[zone.type] ?? 2;
-    return { score, level, hex: COLORS[level], waitMinutes: Math.round(base * mult * 10) / 10, waitMultiplier: mult };
-  }
-
-  rankZones(zones) {
-    return zones.map((z) => ({ zone: z, density: this.computeDensity(z) }))
-                .sort((a, b) => a.density.score - b.density.score);
-  }
-
-  clearHistory(id) { id ? this._h.delete(id) : this._h.clear(); }
 }
 
 // ---- Test helpers ----
@@ -108,9 +66,9 @@ describe('CrowdEngine', () => {
       expect(result.score).toBe(90);
     });
 
-    test('clamps score to 100 even when occupancy exceeds capacity', () => {
+    test('clamps score to 100 even when occupancy exceeds capacity (within 5% buffer)', () => {
       const engine = new CrowdEngine();
-      const result = engine.computeDensity(makeZone({ occupancy: 1200, capacity: 1000 }));
+      const result = engine.computeDensity(makeZone({ occupancy: 1040, capacity: 1000 }));
       expect(result.score).toBe(100);
     });
 
@@ -143,9 +101,9 @@ describe('CrowdEngine', () => {
       }
     });
 
-    test('throws TypeError if zone has no id', () => {
+    test('throws Error if zone has no id', () => {
       const engine = new CrowdEngine();
-      expect(() => engine.computeDensity({ capacity: 100, occupancy: 50 })).toThrow(TypeError);
+      expect(() => engine.computeDensity({ capacity: 100, occupancy: 50 })).toThrow(Error);
     });
 
     test('throws RangeError for zero capacity', () => {

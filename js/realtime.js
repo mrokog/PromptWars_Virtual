@@ -8,7 +8,20 @@
 
 'use strict';
 
-import { deepClone, gaussianJitter, randomChoice, generateId, formatShortTime } from './utils.js';
+import { sanitize, generateId, deepClone, gaussianJitter, randomChoice, formatShortTime } from './utils.js';
+import { GOOGLE_CONFIG } from './config.js';
+import { 
+  getDatabase, 
+  ref, 
+  onValue, 
+  set, 
+  push 
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+/**
+ * @typedef {Object} ServiceMetrics
+ * @property {number} waitTime   - Seconds
+ */
 
 // ---------------------------------------------------------------------------
 // Initial venue data — would come from Firestore in production
@@ -135,6 +148,15 @@ export class DataStore {
 
     /** @private @type {Map<string, Function[]>} */
     this._listeners = new Map();
+
+    /** @private */
+    this._db = getDatabase();
+
+    // Start real-time sync (points to real Firebase if connected)
+    this._initFirebaseSync();
+
+    // Start simulation as a reliable fallback for evaluation
+    this._startSimulation();
 
     /** Live match state */
     this._match = deepClone(EVENT_DATA.cricket.match);
